@@ -5,3 +5,21 @@ dist
 
 # Ignore the output video from Git but not videos you import into src/.
 out
+
+# YouTube OAuth credentials
+client_secret*.json
+token*.json
+token*.pickle
+.oauth_pending_state.json
+
+
+
+# Temporary backups & builds
+*.bak
+build/
+
+
+build
+__pycache__/
+*.pyc
+

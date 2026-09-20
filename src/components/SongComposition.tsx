@@ -16,6 +16,7 @@ import { LyricRenderer } from "./LyricRenderer";
 import { AtmosphereLayer } from "./AtmosphereLayer";
 import { ColorGrade } from "./ColorGrade";
 import { OutroSequence } from "./OutroSequence";
+import { ChannelLogo } from "./ChannelLogo";
 import { getInterpolatedVisualState } from "../data/timeline";
 import { getAudioFrameData, TOTAL_COMPOSITION_FRAMES } from "../data/audio";
 import { getActiveSubtitleState } from "../data/lyrics";
@@ -61,7 +62,7 @@ export const SongComposition: React.FC = () => {
     : 0;
 
   // Outro State
-  const outroStartFrame = 13076; // 00:07:15.866
+  const outroStartFrame = 13070; // 00:07:15.666
   const isOutro = frame >= outroStartFrame;
   const outroProgress = isOutro
     ? (frame - outroStartFrame) / Math.max(1, TOTAL_COMPOSITION_FRAMES - outroStartFrame)
@@ -151,7 +152,10 @@ export const SongComposition: React.FC = () => {
       {/* 11. Filmic Color Grading & 35mm Grain */}
       <ColorGrade segment={segment} frame={frame} />
 
-      {/* 12. Cinematic Outro Sequence (Audio-tail matched blackout) */}
+      {/* 12. Channel Branding Logo (Bottom-right corner) */}
+      <ChannelLogo frame={frame} />
+
+      {/* 13. Cinematic Outro Sequence (Audio-tail matched blackout) */}
       <OutroSequence
         frame={frame}
         outroStartFrame={outroStartFrame}
