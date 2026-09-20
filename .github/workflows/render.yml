@@ -7,6 +7,14 @@ on:
         description: 'CRF quality (18-23 recommended, default 21)'
         required: false
         default: '21'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'HJ/**'
+      - '.github/workflows/render.yml'
 
 jobs:
   render:
