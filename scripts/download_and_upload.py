@@ -12,14 +12,29 @@ if WORKSPACE_DIR not in sys.path:
 
 from scripts.upload_to_youtube import upload_video
 
-RUN_ID = "35533332218"
+DEFAULT_RUN_ID = "35541113186"
 ARTIFACT_NAME = "Hakim_Jan_Faryadi_Master"
 OUT_DIR = os.path.join(WORKSPACE_DIR, "out")
 VIDEO_FILE = os.path.join(OUT_DIR, "Hakim_Jan_Faryadi_Master.mp4")
 
-def check_run_status():
+def get_latest_run_id():
+    try:
+        res = subprocess.run(
+            ["gh", "run", "list", "-L", "1", "--json", "databaseId"],
+            capture_output=True,
+            text=True,
+            cwd=WORKSPACE_DIR
+        )
+        data = json.loads(res.stdout)
+        if data and len(data) > 0:
+            return str(data[0]["databaseId"])
+    except Exception:
+        pass
+    return DEFAULT_RUN_ID
+
+def check_run_status(run_id):
     result = subprocess.run(
-        ["gh", "run", "view", RUN_ID, "--json", "status,conclusion,startedAt,updatedAt"],
+        ["gh", "run", "view", run_id, "--json", "status,conclusion,startedAt,updatedAt"],
         capture_output=True,
         text=True,
         cwd=WORKSPACE_DIR
@@ -34,11 +49,10 @@ def check_run_status():
         print(f"[!] JSON parsing error: {e}")
         return None, None
 
-
-def download_video():
+def download_video(run_id):
     os.makedirs(OUT_DIR, exist_ok=True)
-    print(f"[*] Downloading artifact '{ARTIFACT_NAME}' into '{OUT_DIR}'...")
-    cmd = ["gh", "run", "download", RUN_ID, "-n", ARTIFACT_NAME, "-D", OUT_DIR]
+    print(f"[*] Downloading artifact '{ARTIFACT_NAME}' from run {run_id} into '{OUT_DIR}'...")
+    cmd = ["gh", "run", "download", run_id, "-n", ARTIFACT_NAME, "-D", OUT_DIR]
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=WORKSPACE_DIR)
     if result.returncode != 0:
         raise RuntimeError(f"Download failed: {result.stderr}")
@@ -47,14 +61,17 @@ def download_video():
 def main():
     parser = argparse.ArgumentParser(description="Download rendered video from GitHub Actions and upload to YouTube")
     parser.add_argument("--watch", action="store_true", help="Wait in a loop until render finishes, then upload")
-    parser.add_argument("--title", default="Hakim Jan (Draft)", help="YouTube video title")
+    parser.add_argument("--run-id", default=None, help="Specific GitHub run ID (defaults to latest run)")
+    parser.add_argument("--title", default="Hakim Jan - Faryadi (Master)", help="YouTube video title")
     parser.add_argument("--description", default="", help="YouTube description")
     parser.add_argument("--privacy", default="private", choices=["public", "unlisted", "private"], help="Privacy status (default: private draft)")
     args = parser.parse_args()
 
+    run_id = args.run_id or get_latest_run_id()
+    print(f"[*] Monitoring GitHub Actions Run ID: {run_id}")
 
-    status, conclusion = check_run_status()
-    print(f"[*] Current GitHub Actions Run Status: {status} (Conclusion: {conclusion})")
+    status, conclusion = check_run_status(run_id)
+    print(f"[*] Current Run Status: {status} (Conclusion: {conclusion})")
 
     if status == "in_progress":
         if not args.watch:
@@ -65,17 +82,15 @@ def main():
             print("[*] Watching render run until completion...")
             while status == "in_progress":
                 time.sleep(30)
-                status, conclusion = check_run_status()
+                status, conclusion = check_run_status(run_id)
                 print(f"    ... still rendering (status: {status})")
 
-
     if conclusion != "success":
-        print(f"[!] Run concluded with: {conclusion}. Please inspect with `gh run view {RUN_ID}`")
+        print(f"[!] Run concluded with: {conclusion}. Please inspect with `gh run view {run_id}`")
         return
 
     # Download if not already present
-    if not os.path.exists(VIDEO_FILE):
-        download_video()
+    download_video(run_id)
 
     if not os.path.exists(VIDEO_FILE):
         # Look if it was downloaded directly in out
